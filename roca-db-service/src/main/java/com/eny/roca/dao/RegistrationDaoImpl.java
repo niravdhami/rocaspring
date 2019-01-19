@@ -63,7 +63,7 @@ public class RegistrationDaoImpl implements RegistrationDao {
 			
 			i = namedTemplate.update(setData, namedParameters);
 			if(i > 0) {
-				String link = "http://localhost:8302/api/roca-bl-service/rs/bl/verifiedEmailId?email="+userRegistration.getEmailId();
+				String link = "http://localhost:4200/login/email-verify?emailId="+userRegistration.getEmailId();
 				StringBuilder  sb = new StringBuilder();
 				sb.append("<html><head> WELCOME TO ROCA Services, <head> <body><br />   Activation Link :  <a href=\""+link+"\">Verify EmailId Here</a><br /><br /> You can Login to ROCA site from below Credentials <br />");
 				sb.append("UserName : " + userRegistration.getEmailId() + "<br />");

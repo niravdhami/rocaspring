@@ -45,7 +45,7 @@ public class MasterDataDaoImpl implements MasterDataDao {
 	public List<IndustryMasterData> getIndustry() {
 		String query = ""
 				+ "SELECT * "
-				+ "FROM   rocamaster.Industry  "
+				+ "FROM   RocaMaster.Industry  "
 				+ "           where      isactive = 1 ";
 		List<IndustryMasterData> industryData = jdbcTemplate.query(query , new IndustryMasterDataMapper());
 		return industryData;

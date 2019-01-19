@@ -8,8 +8,10 @@ import javax.ws.rs.QueryParam;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.LinkedMultiValueMap;
@@ -22,7 +24,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
+import com.eny.roca.bean.EmailValidationBean;
 import com.eny.roca.bean.RegisteredUserResponse;
+import com.eny.roca.bean.UserBean;
 import com.eny.roca.bean.UserRegistration;
 import com.eny.roca.bl.services.SmtpMailSender;
 import com.eny.roca.bl.services.ValidateEmail;
@@ -72,8 +76,8 @@ public class RocaRegistrationResourceService {
 	@SuppressWarnings("unchecked")
 	@GetMapping("/getRegistrationData")
 	public List<UserRegistration> getUserRegistration() {
-		ResponseEntity<List> userRegistration = restTemplate.getForEntity("http://roca-db-service/rs/db/getRegister", List.class);
-		return (List<UserRegistration>)userRegistration.getBody();
+		ResponseEntity<List<UserRegistration>> userRegistration = restTemplate.exchange("http://roca-db-service/rs/db/getRegister",HttpMethod.GET, null,  new ParameterizedTypeReference<List<UserRegistration>>() {});
+		return userRegistration.getBody();
 	}
 	
 	@PostMapping("/register")
@@ -114,57 +118,56 @@ public class RocaRegistrationResourceService {
 	}
 	
 	
-	@GetMapping("/verifiedEmailId")
-	public Integer VerifiedEmail(@RequestParam(value = "email") String email) {
-		
+	@PostMapping("/verifiedEmailId")
+	public EmailValidationBean VerifiedEmail(@RequestBody UserBean userbean) {
+	//public String VerifiedEmail(@RequestParam String email) {
+		EmailValidationBean emailValidationBean = new  EmailValidationBean();
 		HttpHeaders httpHeaders = new  HttpHeaders();
 		httpHeaders.set("content-type", "application/json");
-		HttpEntity<String> httpEntity = new HttpEntity<>(email,httpHeaders);
+		String emailId = userbean.getEmailId();
+		HttpEntity<String> httpEntity = new HttpEntity<>(emailId,httpHeaders); //email
+		//HttpEntity<String> httpEntity = new HttpEntity<>(email,httpHeaders); 
 		ResponseEntity<Integer> postForEntity = restTemplate.postForEntity("http://roca-db-service/rs/db/verifyEmail", httpEntity, Integer.class);
 		Integer body = postForEntity.getBody();
 		// once Email is verified lets proceed for AD Registration.
 		String url = null;
-		if(body>0) {
-			//get the registation id of user to send it into the URL
-			  Optional<UserRegistration> userRegistrationDetails = getUserRegistration().stream().filter(u->u.getEmailId().equalsIgnoreCase(email)).findFirst();
-			  Integer registrationId = userRegistrationDetails.isPresent() ? userRegistrationDetails.get().getRegisrationId() : null;
-			//Need to prepare URL to hit on the Browser..
-			if(null!=registrationId) {
-				StringBuffer sbf = new StringBuffer();
-				sbf.append("https://login.microsoftonline.com/")
-				.append(tenantId).append("/oauth2/v2.0/authorize?client_id=")
-				.append(clientid)
-				.append("&response_type=")
-				.append(responseType)
-				.append("&response_mode=")
-				.append(responseMode)
-				.append("&scope=")
-				.append(userScope)
-				.append("&state=")
-				.append(registrationId);
-				url = sbf.toString();
-			}else {
-				return 0;
-			}
-			
+		if (body > 0) {
+			Optional<UserRegistration> userRegistrationDetails = getUserRegistration().stream()
+					.filter(u -> u.getEmailId().equalsIgnoreCase(emailId)).findFirst();
+
+			UserRegistration userRegistration = userRegistrationDetails.isPresent() ? userRegistrationDetails.get()
+					: null;
+			String token = azureAuthenticationHelper.getTokenforRegistration(emailValidationBean.getCode(),
+					emailValidationBean.getState());
+			RegisteredUserResponse registeredUserResponse = azureAuthenticationHelper.getUserPrincipalName(token,
+					userRegistration);
+			emailValidationBean.setRegistered(true);
+			return emailValidationBean;
+		}else if(body==0) {
+			//return "Email id is already Verified";
+			return null;
 		}
-		
-		
-		return postForEntity.getBody();
+		return null;
+		//return postForEntity.getBody();
 	}
 	
-	@GetMapping("/user/regisration/ad")
-	public String registerUserWithAzuer(@QueryParam("code") String code,@QueryParam("state") String state) {
+	@PostMapping("/user/regisration/ad")
+	public EmailValidationBean registerUserWithAzuer(@RequestBody EmailValidationBean emailValidationBean) {
 		
-		UserRegistration userRegistration = new UserRegistration();
+		/*UserRegistration userRegistration = new UserRegistration();
 		userRegistration.setEmailId("m3raj10111@gmail.com");
-		userRegistration.setLegalEntityName("ABC11");
+		userRegistration.setLegalEntityName("ABC11");*/
  		
-	  //  Optional<UserRegistration> userRegistrationDetails = getUserRegistration().stream().filter(u-> u.getRegisrationId() == (Integer.valueOf(state))).findFirst();
-	  //  UserRegistration userRegistration = userRegistrationDetails.isPresent() ? userRegistrationDetails.get() : null;
-	//	String token = azureAuthenticationHelper.getTokenforRegistration(code,state);
-		RegisteredUserResponse registeredUserResponse = azureAuthenticationHelper.getUserPrincipalName("",userRegistration);
-		return null;
+	    Optional<UserRegistration> userRegistrationDetails = getUserRegistration().stream().filter(u-> u.getRegisrationId() == (Integer.valueOf(emailValidationBean.getState()))).findFirst();
+	    UserRegistration userRegistration = userRegistrationDetails.isPresent() ? userRegistrationDetails.get() : null;
+	  	String token = azureAuthenticationHelper.getTokenforRegistration(emailValidationBean.getCode(),emailValidationBean.getState());
+		RegisteredUserResponse registeredUserResponse = azureAuthenticationHelper.getUserPrincipalName(token,userRegistration);
+		//updat userprinciple name in our regisration and subscription table.
+		//send an email with username and password
+		if(null!=emailValidationBean) {
+			emailValidationBean.setRegistered(true);
+		}
+		return emailValidationBean;
 	}
 	
 	@GetMapping("/validateMobileNo")
