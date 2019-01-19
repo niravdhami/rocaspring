@@ -18,6 +18,8 @@ public interface MasterDataDao {
 
 	List<Object> getIndustryName(String Id);
 
+	Integer getJrMemberQueryAlloacted(String jrMember);
+
  
 
 }

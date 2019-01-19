@@ -77,8 +77,11 @@ public class MasterDataDaoImpl implements MasterDataDao {
 
 	}
 
-
-	
-	
-
+	@Override
+	public Integer getJrMemberQueryAlloacted(String jrMember) {
+		String s = jrMember.toString();
+		
+		Integer queryForObject = jdbcTemplate.queryForObject("select COUNT(*) from  rocaserviceteam.queryassignment qa left outer join rocaserviceteam.serviceteamusers u on qa.toassignment=U.id left outer join rocaserviceteam.serviceteamrole R on U.roleid=R.id where R.Name='JUNIOR' and u.name=?", new Object[] {jrMember},  Integer.class);
+		return queryForObject;
+	}
 }
