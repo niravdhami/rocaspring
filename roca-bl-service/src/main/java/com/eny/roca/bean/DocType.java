@@ -1,6 +1,6 @@
 package com.eny.roca.bean;
 
-public enum SubscriptionDocType {
+public enum DocType {
 	
 	 PAN,
 	

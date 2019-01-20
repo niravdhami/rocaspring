@@ -27,13 +27,13 @@ public class QueryDBResourceService {
 	private QueryDao queryDao;
 
 	@PostMapping("/saveQuery")
-	public Boolean query(@RequestBody List<QueryBean> queryBean) {
+	public Boolean query(@RequestBody QueryBean queryBean) {
 		return queryDao.saveQueryUser(queryBean) > 0 ? true : false;
 	}
 
 	@PostMapping("/getQuery")
-	public List<QueryBean> getQuery(@RequestParam String status, @RequestParam Integer userId) {
-		return queryDao.getQuery(status, userId);
+	public List<QueryBean> getQuery(@RequestBody Integer userId) {
+		return queryDao.getQuery(userId);
 	}
 
 	@Transactional(rollbackFor = Exception.class)
@@ -62,4 +62,6 @@ public class QueryDBResourceService {
 		List<QueryBean> queryBean = queryDao.fetchQueryStatus(userBean.getStatus());
 		return queryBean;
 	}
+	
+	
 }

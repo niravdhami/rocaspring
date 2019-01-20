@@ -14,9 +14,11 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
+import com.eny.roca.db.bean.QueryAdditionalDocDetails;
 import com.eny.roca.db.bean.QueryAssignment;
 import com.eny.roca.db.bean.QueryAssignmentMapper;
 import com.eny.roca.db.bean.QueryBean;
+import com.eny.roca.db.bean.QuestionBean;
 import com.eny.roca.db.bean.StatusBean;
 import com.eny.roca.db.bean.SubscriptionAssignment;
 import com.eny.roca.db.bean.SubscriptionBean;
@@ -31,9 +33,9 @@ public class QueryDaoImpl implements QueryDao {
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
 
-	public Integer saveQueryUser(List<QueryBean> queryPojo) {
+	public Integer saveQueryUser(QueryBean queryBean) {
 		int update2 = 0;
-		for (QueryBean queryBean : queryPojo) {
+		
 			KeyHolder keyHolder = new GeneratedKeyHolder();
 			String query = "INSERT INTO  rocausers.Query "
 					+ "				 (QueryCaption, QueryFact, Category, FinancialYear, Status, isAssigned, inScope, comments, UserId) "
@@ -41,40 +43,51 @@ public class QueryDaoImpl implements QueryDao {
 
 			if (queryBean.getIsSubmit()) {
 				queryBean.setStatus("New");
-				queryBean.setQueStatus("New");
 			} else {
 				queryBean.setStatus("Saved");
-				queryBean.setQueStatus("Saved");
 			}
 
 			SqlParameterSource fileParameters = new BeanPropertySqlParameterSource(queryBean);
 			int update = namedParameterJdbcTemplate.update(query, fileParameters, keyHolder);
 			int id = keyHolder.getKey().intValue();
 			if (update == 1) {
+				for(QuestionBean questionbean : queryBean.getQueationbeans()) {
 				String query2 = "INSERT INTO  rocausers.Question "
 						+ "				 (QuestionDescription, QueryId, Status, ModifiedQuestionDescription, isQuestionModified, comments, Answer) "
 						+ "				 VALUES (:questionDescription, :queryId, :status, :modifiedQuestionDescription, :isQuestionModified, :comments, :answer)";
 
+				if (queryBean.getIsSubmit()) {
+					questionbean.setQueStatus("New");
+				} else {
+					questionbean.setQueStatus("Saved");
+				}
 				Map<String, Object> map = new HashMap<>(1);
-				map.put("questionDescription", queryBean.getQuestionDescription());
+				map.put("questionDescription", questionbean.getQuestionDescription());
 				map.put("queryId", id);
-				map.put("status", queryBean.getQueStatus());
-				map.put("modifiedQuestionDescription", queryBean.getModifiedQuestionDescription());
-				map.put("isQuestionModified", queryBean.getIsQuestionModified());
-				map.put("comments", queryBean.getQueComment());
-				map.put("answer", queryBean.getAnswer());
+				map.put("status", questionbean.getQueStatus());
+				map.put("modifiedQuestionDescription", questionbean.getModifiedQuestionDescription());
+				map.put("isQuestionModified", questionbean.getIsQuestionModified());
+				map.put("comments", questionbean.getQueComment());
+				map.put("answer", questionbean.getAnswer());
 				update2 = namedParameterJdbcTemplate.update(query2, map);
 			}
-		}
+			}
+		
 		return update2;
 	}
 
 	@Override
-	public List<QueryBean> getQuery(String status, Integer userId) {
+	public List<QueryBean> getQuery(Integer userId) {
 
-		return jdbcTemplate.query(
-				"select * from rocausers.Query qr inner join rocausers.question qu on qr.id=qu.queryId  where qr.status=? and qr.UserId=?",
-				new Object[] { status, userId }, new QueryDataMapper());
+		List<QueryBean> query = jdbcTemplate.query("select * from rocausers.Query qr where qr.UserId=?",
+				new Object[] { userId }, new QueryDataMapper());
+		for (QueryBean qr : query) {
+			List<QuestionBean> listofQuestion = jdbcTemplate.query(
+					"select que.* from rocaUSERS.question que where que.queryid=?", new Object[] { qr.getQueryId() },
+					new QuestionDataMapper());
+			qr.setQueationbeans(listofQuestion);
+		}
+		return query;
 	}
 
 	@Override
@@ -96,6 +109,22 @@ public class QueryDaoImpl implements QueryDao {
 			Map<String,Object> map3 = new HashMap<>(1);
 			map3.put("isAdditionalDocRequired", s.getDocRequired());
 			map3.put("id", s.getId()); 
+			
+			if(s.getDocRequired() == 1) {
+				for(QueryAdditionalDocDetails q : s.getQueryAdditionalDocDetails()) {
+				String queryForAddDoc = "INSERT INTO  rocausers.QueryAdditionalDocs "
+						+ "				 (QueryId, DocName, Type, DocData, FileExtention) "
+						+ "				 VALUES (:queryId, :docName, :type, :docData, :fileExtention)";
+				Map<String, Object> map4 = new HashMap<>(1);
+				map4.put("queryId", s.getId());
+				map4.put("docName", q.getDocName());
+				map4.put("type", q.getDocType());
+				map4.put("docData", q.getDocData());
+				map4.put("fileExtention", q.getDocExtention());
+				
+				namedParameterJdbcTemplate.update(queryForAddDoc, map4);
+				}	
+			}	
 			
 			String getStatus = "select Status from rocausers.Query where rocausers.Query.Id=?";
 			String queryForFromStatus = jdbcTemplate.queryForObject(getStatus, new Object[] { s.getId() },
@@ -142,9 +171,13 @@ public class QueryDaoImpl implements QueryDao {
 	@Override
 	public QueryBean fetchQueryById(Integer queryId) {
 
-		return jdbcTemplate.queryForObject(
-				"select * from rocausers.Query qr inner join rocausers.question qu on qr.id=qu.queryId  where qr.id=?",
+		QueryBean query = jdbcTemplate.queryForObject("select * from rocausers.Query qr where qr.Id=?",
 				new Object[] { queryId }, new QueryDataMapper());
+			List<QuestionBean> listofQuestion = jdbcTemplate.query(
+					"select que.* from rocaUSERS.question que where que.queryid=?", new Object[] { queryId },
+					new QuestionDataMapper());
+			query.setQueationbeans(listofQuestion);
+		return query;
 	}
 
 	@Override
@@ -181,8 +214,14 @@ public class QueryDaoImpl implements QueryDao {
 	@Override
 	public List<QueryBean> fetchQueryStatus(String status) {
 
-		return jdbcTemplate.query(
-				"select * from rocausers.Query qr inner join rocausers.question qu on qr.id=qu.queryId  where qr.status=?",
+		List<QueryBean> query = jdbcTemplate.query("select * from rocausers.Query qr where qr.status=?",
 				new Object[] { status }, new QueryDataMapper());
+		for (QueryBean qr : query) {
+			List<QuestionBean> listofQuestion = jdbcTemplate.query(
+					"select que.* from rocaUSERS.question que where que.queryid=?", new Object[] { qr.getQueryId() },
+					new QuestionDataMapper());
+			qr.setQueationbeans(listofQuestion);
+		}
+		return query;
 	}
 }

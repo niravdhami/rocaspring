@@ -7,7 +7,7 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.eny.roca.db.bean.SubscriptionDocDetails;
-import com.eny.roca.db.bean.SubscriptionDocType;
+import com.eny.roca.db.bean.DocType;
 
 public class SubscriptionDataMapper implements RowMapper<SubscriptionDocDetails> {
  

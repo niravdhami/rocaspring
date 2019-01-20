@@ -1,11 +1,14 @@
 package com.eny.roca.db.bean;
 
+import java.util.List;
+
 public class StatusBean {
 	private int id;
 	private String action;
 	private String condition;
 	private String  paceId;
 	private Integer docRequired;
+	private List<QueryAdditionalDocDetails> queryAdditionalDocDetails;
 	public int getId() {
 		return id;
 	}
@@ -35,6 +38,12 @@ public class StatusBean {
 	}
 	public void setDocRequired(Integer docRequired) {
 		this.docRequired = docRequired;
+	}
+	public List<QueryAdditionalDocDetails> getQueryAdditionalDocDetails() {
+		return queryAdditionalDocDetails;
+	}
+	public void setQueryAdditionalDocDetails(List<QueryAdditionalDocDetails> queryAdditionalDocDetails) {
+		this.queryAdditionalDocDetails = queryAdditionalDocDetails;
 	}
 
 }

@@ -22,7 +22,7 @@ public class SubscriptionRequestBean {
 	
 	private String docName;
 	
-	private SubscriptionDocType docType;
+	private DocType docType;
 	
 	private String docExtention;
 	
@@ -84,11 +84,11 @@ public class SubscriptionRequestBean {
 		this.docName = docName;
 	}
 
-	public SubscriptionDocType getDocType() {
+	public DocType getDocType() {
 		return docType;
 	}
 
-	public void setDocType(SubscriptionDocType docType) {
+	public void setDocType(DocType docType) {
 		this.docType = docType;
 	}
 

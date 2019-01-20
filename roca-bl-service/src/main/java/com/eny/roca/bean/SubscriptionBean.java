@@ -39,7 +39,7 @@ public class SubscriptionBean extends UserRegistration {
 	/*Subscritpion docs */
 	private String email;
 	private String docName;
-	private SubscriptionDocType docType;
+	private DocType docType;
 	private String docExtention;
 	private int is_valid_doc;
 	private MultipartFile docData;
@@ -268,10 +268,10 @@ public class SubscriptionBean extends UserRegistration {
 	public void setDocName(String docName) {
 		this.docName = docName;
 	}
-	public SubscriptionDocType getDocType() {
+	public DocType getDocType() {
 		return docType;
 	}
-	public void setDocType(SubscriptionDocType docType) {
+	public void setDocType(DocType docType) {
 		this.docType = docType;
 	}
 	public String getDocExtention() {

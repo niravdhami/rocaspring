@@ -9,9 +9,9 @@ import com.eny.roca.db.bean.SubscriptionBean;
 
 public interface QueryDao {
 
-	Integer saveQueryUser(List<QueryBean> queryBean);
+	Integer saveQueryUser(QueryBean queryBean);
 
-	List<QueryBean> getQuery(String status, Integer userId);
+	List<QueryBean> getQuery(Integer userId);
 
 	Integer saveQueryAssignment(List<QueryAssignment> queryAssignment);
 

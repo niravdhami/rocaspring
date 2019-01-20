@@ -35,7 +35,7 @@ public class QueryResourceService {
 	
 	
 	@PostMapping("/saveQuery")
-	public Boolean setQuery(@RequestBody List<QueryBean> queryBean) {
+	public Boolean setQuery(@RequestBody QueryBean queryBean) {
 		String json = gson.toJson(queryBean);
 		HttpHeaders httpHeaders = new  HttpHeaders();
 		httpHeaders.set("content-type", "application/json");
@@ -46,16 +46,13 @@ public class QueryResourceService {
 	
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	@GetMapping("/getQuery")
-	public List<QueryBean> getQuery(@RequestParam String status, @RequestParam Integer userId) {
+	public List<QueryBean> getQuery(@RequestParam Integer userId) {
 		String json = gson.toJson(userId);
-		HttpHeaders headers = new HttpHeaders();
-		headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-		MultiValueMap<String, String> map= new LinkedMultiValueMap<String, String>();
-		map.add("status" ,status); 
-		map.add("userId", json);
-		HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<MultiValueMap<String, String>>(map, headers);
-		ResponseEntity<List> postForEntity = restTemplate.postForEntity("http://roca-db-service/rs/db/getQuery", request, List.class);
-		return (List<QueryBean>)postForEntity.getBody();
+		HttpHeaders httpHeaders = new  HttpHeaders();
+		httpHeaders.set("content-type", "application/json");
+		HttpEntity<String> httpEntity = new HttpEntity<>(json,httpHeaders);
+		ResponseEntity<List> postForEntity = restTemplate.postForEntity("http://roca-db-service/rs/db/getQuery", httpEntity, List.class);
+		return postForEntity.getBody();
 	}
 	
 	@PostMapping("/setQueryAssignment")

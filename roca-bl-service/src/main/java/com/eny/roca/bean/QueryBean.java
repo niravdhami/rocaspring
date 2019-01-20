@@ -1,6 +1,8 @@
 package com.eny.roca.bean;
 
-public class QueryBean extends QuestionBean{
+import java.util.List;
+
+public class QueryBean {
 	private String queryCaption;
 	private String queryFact;
 	private String Category;
@@ -10,6 +12,7 @@ public class QueryBean extends QuestionBean{
 	private Integer inScope;
 	private String comment;
 	private Integer userId;
+	private List<QuestionBean> queationbeans;
 	
 	private Boolean isSubmit;
 	
@@ -72,5 +75,11 @@ public class QueryBean extends QuestionBean{
 	}
 	public void setIsSubmit(Boolean isSubmit) {
 		this.isSubmit = isSubmit;
+	}
+	public List<QuestionBean> getQueationbeans() {
+		return queationbeans;
+	}
+	public void setQueationbeans(List<QuestionBean> queationbeans) {
+		this.queationbeans = queationbeans;
 	}
 }

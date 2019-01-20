@@ -6,7 +6,7 @@ public class SubscriptionDocDetails {
 	
 	private String docName;
 	
-	private SubscriptionDocType docType;
+	private DocType docType;
 	
 	private String docExtention;
 	
@@ -20,7 +20,7 @@ public class SubscriptionDocDetails {
 		
 	}
 	
-		public SubscriptionDocDetails(String docName, SubscriptionDocType docType, String docExtention, int is_valid_doc,
+		public SubscriptionDocDetails(String docName, DocType docType, String docExtention, int is_valid_doc,
 				MultipartFile docData, long docDataSize) {
 		//super();
 		this.docName = docName;
@@ -55,11 +55,11 @@ public class SubscriptionDocDetails {
 		this.docName = docName;
 	}
 
-	public SubscriptionDocType getDocType() {
+	public DocType getDocType() {
 		return docType;
 	}
 
-	public void setDocType(SubscriptionDocType docType) {
+	public void setDocType(DocType docType) {
 		this.docType = docType;
 	}
 

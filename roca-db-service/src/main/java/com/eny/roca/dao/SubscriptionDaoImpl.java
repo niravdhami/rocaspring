@@ -192,7 +192,6 @@ public class SubscriptionDaoImpl implements SubscriptionDao {
 	}
 	public Integer updateSubscriptionPaceId(List<SubscriptionAssignment> subscriptionBean) {
 		
-
 		List<Integer> update = new ArrayList<Integer>();
 		int i = 0;
 		for(SubscriptionAssignment s : subscriptionBean) { 
