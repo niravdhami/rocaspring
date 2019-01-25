@@ -19,6 +19,13 @@ public class QueryAdditionalDocDetails {
 	private long docDataSize;
 	
 	private byte[] fileData;
+	
+	 public QueryAdditionalDocDetails(Integer queryId, String docName, DocType docType, String docExtention) {
+	        this.queryId = queryId;
+	        this.docName = docName;
+	        this.docType = docType;
+	        this.docExtention = docExtention;
+	    }
 
 	public Integer getQueryId() {
 		return queryId;

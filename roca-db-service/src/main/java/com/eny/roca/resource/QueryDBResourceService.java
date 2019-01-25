@@ -42,6 +42,12 @@ public class QueryDBResourceService {
 		return queryDao.saveQueryAssignment(queryAssignment) > 0 ? true : false;
 	}
 	
+	@Transactional(rollbackFor = Exception.class)
+	@PostMapping("/postQueryAssignment")
+	public Boolean postQueryAssignment(@RequestBody List<QueryAssignment> queryAssignment) {
+		return queryDao.postQueryAssignment(queryAssignment) > 0 ? true : false;
+	}
+	
 	@PostMapping("/fetchQueryAssignmentById")
 	public List<QueryAssignment> fetchQueryAssignmentById(@RequestBody Integer queryId) {
 		return queryDao.getQueryAssignment(queryId);
@@ -62,6 +68,4 @@ public class QueryDBResourceService {
 		List<QueryBean> queryBean = queryDao.fetchQueryStatus(userBean.getStatus());
 		return queryBean;
 	}
-	
-	
 }

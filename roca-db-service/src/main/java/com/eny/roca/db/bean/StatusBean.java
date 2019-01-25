@@ -8,6 +8,8 @@ public class StatusBean {
 	private String condition;
 	private String  paceId;
 	private Integer docRequired;
+	private String queryComments;
+	
 	private List<QueryAdditionalDocDetails> queryAdditionalDocDetails;
 	public int getId() {
 		return id;
@@ -38,6 +40,12 @@ public class StatusBean {
 	}
 	public void setDocRequired(Integer docRequired) {
 		this.docRequired = docRequired;
+	}
+	public String getQueryComments() {
+		return queryComments;
+	}
+	public void setQueryComments(String queryComments) {
+		this.queryComments = queryComments;
 	}
 	public List<QueryAdditionalDocDetails> getQueryAdditionalDocDetails() {
 		return queryAdditionalDocDetails;

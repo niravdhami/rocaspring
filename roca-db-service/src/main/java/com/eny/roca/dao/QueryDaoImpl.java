@@ -2,6 +2,7 @@ package com.eny.roca.dao;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -56,11 +57,7 @@ public class QueryDaoImpl implements QueryDao {
 						+ "				 (QuestionDescription, QueryId, Status, ModifiedQuestionDescription, isQuestionModified, comments, Answer) "
 						+ "				 VALUES (:questionDescription, :queryId, :status, :modifiedQuestionDescription, :isQuestionModified, :comments, :answer)";
 
-				if (queryBean.getIsSubmit()) {
-					questionbean.setQueStatus("New");
-				} else {
-					questionbean.setQueStatus("Saved");
-				}
+				
 				Map<String, Object> map = new HashMap<>(1);
 				map.put("questionDescription", questionbean.getQuestionDescription());
 				map.put("queryId", id);
@@ -92,9 +89,53 @@ public class QueryDaoImpl implements QueryDao {
 
 	@Override
 	public Integer saveQueryAssignment(List<QueryAssignment> queryAssignment) {
+		
 		List<Integer> update = new ArrayList<Integer>();
 		int i = 0;
 		for (QueryAssignment s : queryAssignment) {
+			
+			String getTeamRole = "select DISTINCT qr.name from rocaserviceteam.queryassignment qa inner join rocaserviceteam.serviceteamusers qu on qa.fromAssignment=qu.id inner join rocaserviceteam.serviceteamRole qr on qu.roleId=qr.id where qa.fromAssignment=?";
+			String queryForTeamRole = jdbcTemplate.queryForObject(getTeamRole, new Object[] { s.getFromAssignment() },
+					String.class);
+			
+			if(queryForTeamRole.equalsIgnoreCase("SENIOR")) {
+				String query = "INSERT INTO  rocaserviceteam.QueryAssignment "
+						+ "				 (QueryId, FromAssignment, ToAssignment, Comments) "
+						+ "				 VALUES (:queryId,:fromAssignment,:toAssignment,:comments)";
+
+				Map<String, Object> map = new HashMap<>(1);
+				map.put("queryId", s.getId());
+				map.put("fromAssignment", s.getFromAssignment());
+				map.put("toAssignment", s.getToAssignment());
+				map.put("comments", s.getComments());
+				
+				String getStatus = "select Status from rocausers.Query where rocausers.Query.Id=?";
+				String queryForFromStatus = jdbcTemplate.queryForObject(getStatus, new Object[] { s.getId() },
+						String.class);
+				String queryForToStatus = null;
+
+				if (queryForFromStatus.equalsIgnoreCase("JRREVIEWED")) {
+					String ToStatus = "select ToState from rocaserviceteam.QueryStatusMaster where fromstate=? and Action=? and Condition=?";
+					queryForToStatus = jdbcTemplate.queryForObject(ToStatus,
+							new Object[] { queryForFromStatus, s.getAction(), s.getCondition() }, String.class);
+				} else if (queryForFromStatus.equalsIgnoreCase("ANS_CREATED")) {
+					String ToStatus = "select ToState from rocaserviceteam.QueryStatusMaster where fromstate=? and Action=?";
+					queryForToStatus = jdbcTemplate.queryForObject(ToStatus,
+							new Object[] { queryForFromStatus, s.getAction() }, String.class);
+				} else {
+					String ToStatus = "select ToState from rocaserviceteam.QueryStatusMaster where fromstate=?";
+					queryForToStatus = jdbcTemplate.queryForObject(ToStatus, new Object[] { queryForFromStatus },
+							String.class);
+				}
+				String query2 = "UPDATE  rocausers.Query SET Status = :status, Comments = :comments ,UpdatedOn = CURRENT_TIMESTAMP where Id = :id";
+				Map<String, Object> map2 = new HashMap<>(1);
+				map2.put("status", queryForToStatus);
+				map2.put("comments", s.getQueryComments());
+				map2.put("id", s.getId());
+				
+				update.add(namedParameterJdbcTemplate.update(query, map));
+				update.add(namedParameterJdbcTemplate.update(query2, map2));
+			} else if(queryForTeamRole.equalsIgnoreCase("JUNIOR")) {
 			String query = "INSERT INTO  rocaserviceteam.QueryAssignment "
 					+ "				 (QueryId, FromAssignment, ToAssignment, Comments) "
 					+ "				 VALUES (:queryId,:fromAssignment,:toAssignment,:comments)";
@@ -105,12 +146,7 @@ public class QueryDaoImpl implements QueryDao {
 			map.put("toAssignment", s.getToAssignment());
 			map.put("comments", s.getComments());
 			
-			String queryIsAddDoc =  "UPDATE  rocausers.query SET IsAdditionalDocRequired = :isAdditionalDocRequired where Id = :id";
-			Map<String,Object> map3 = new HashMap<>(1);
-			map3.put("isAdditionalDocRequired", s.getDocRequired());
-			map3.put("id", s.getId()); 
-			
-			if(s.getDocRequired() == 1) {
+			if(s.getDocRequired() != 0) {
 				for(QueryAdditionalDocDetails q : s.getQueryAdditionalDocDetails()) {
 				String queryForAddDoc = "INSERT INTO  rocausers.QueryAdditionalDocs "
 						+ "				 (QueryId, DocName, Type, DocData, FileExtention) "
@@ -144,15 +180,32 @@ public class QueryDaoImpl implements QueryDao {
 				queryForToStatus = jdbcTemplate.queryForObject(ToStatus, new Object[] { queryForFromStatus },
 						String.class);
 			}
-			String query2 = "UPDATE  rocausers.Query SET Status = :status ,UpdatedOn = CURRENT_TIMESTAMP where Id = :id";
+			String query2 = "UPDATE  rocausers.Query SET IsAdditionalDocRequired = :isAdditionalDocRequired, Status = :status, InScope = :inScope ,UpdatedOn = CURRENT_TIMESTAMP where Id = :id";
 			Map<String, Object> map2 = new HashMap<>(1);
+			map2.put("isAdditionalDocRequired", s.getDocRequired());
 			map2.put("status", queryForToStatus);
+			map2.put("inScope", s.getInScope());
 			map2.put("id", s.getId());
 			
-			
+			String getQuestionId = "select id from rocausers.question where queryId=? order by id asc";
+			List<String> queryForQuestionId = jdbcTemplate.queryForList(getQuestionId, new Object[] { s.getId() },
+					String.class);
+			int j =0;
+			for(QuestionBean que : s.getQueationbeans()) {
+				if(que.getIsQuestionModified() != 0 ) {
+					
+					String query5 = "UPDATE rocausers.Question SET IsQuestionModified = 1, ModifiedQuestionDescription = :modifiedQuestionDescription, Status = :status  ,UpdatedOn = CURRENT_TIMESTAMP where Id = :id";
+					Map<String, Object> map5 = new HashMap<>(1);
+					map5.put("modifiedQuestionDescription", que.getModifiedQuestionDescription());
+					map5.put("status", "Accepted with modification");
+					map5.put("id", queryForQuestionId.get(j));
+					namedParameterJdbcTemplate.update(query5, map5);
+				}
+				j++;
+			}
 			update.add(namedParameterJdbcTemplate.update(query, map));
-			update.add(namedParameterJdbcTemplate.update(queryIsAddDoc, map3));
 			update.add(namedParameterJdbcTemplate.update(query2, map2));
+		}
 		}
 		if (!update.contains(0)) {
 			i = 1;
@@ -224,4 +277,121 @@ public class QueryDaoImpl implements QueryDao {
 		}
 		return query;
 	}
+
+	@Override
+	public Integer postQueryAssignment(List<QueryAssignment> queryAssignment) {
+		
+		List<Integer> update = new ArrayList<Integer>();
+		int i = 0;
+		for (QueryAssignment s : queryAssignment) {
+			
+			String getTeamRole = "select DISTINCT qr.name from rocaserviceteam.queryassignment qa inner join rocaserviceteam.serviceteamusers qu on qa.fromAssignment=qu.id inner join rocaserviceteam.serviceteamRole qr on qu.roleId=qr.id where qa.fromAssignment=?";
+			String queryForTeamRole = jdbcTemplate.queryForObject(getTeamRole, new Object[] { s.getFromAssignment() },
+					String.class);
+			
+			if(queryForTeamRole.equalsIgnoreCase("SENIOR")) {
+				String query = "INSERT INTO  rocaserviceteam.QueryAssignment "
+						+ "				 (QueryId, FromAssignment, ToAssignment, Comments) "
+						+ "				 VALUES (:queryId,:fromAssignment,:toAssignment,:comments)";
+
+				Map<String, Object> map = new HashMap<>(1);
+				map.put("queryId", s.getId());
+				map.put("fromAssignment", s.getFromAssignment());
+				map.put("toAssignment", s.getToAssignment());
+				map.put("comments", s.getComments());
+				
+				String getStatus = "select Status from rocausers.Query where rocausers.Query.Id=?";
+				String queryForFromStatus = jdbcTemplate.queryForObject(getStatus, new Object[] { s.getId() },
+						String.class);
+				String queryForToStatus = null;
+
+				if (queryForFromStatus.equalsIgnoreCase("JRREVIEWED")) {
+					String ToStatus = "select ToState from rocaserviceteam.QueryStatusMaster where fromstate=? and Action=? and Condition=?";
+					queryForToStatus = jdbcTemplate.queryForObject(ToStatus,
+							new Object[] { queryForFromStatus, s.getAction(), s.getCondition() }, String.class);
+				} else if (queryForFromStatus.equalsIgnoreCase("ANS_CREATED")) {
+					String ToStatus = "select ToState from rocaserviceteam.QueryStatusMaster where fromstate=? and Action=?";
+					queryForToStatus = jdbcTemplate.queryForObject(ToStatus,
+							new Object[] { queryForFromStatus, s.getAction() }, String.class);
+				} else {
+					String ToStatus = "select ToState from rocaserviceteam.QueryStatusMaster where fromstate=?";
+					queryForToStatus = jdbcTemplate.queryForObject(ToStatus, new Object[] { queryForFromStatus },
+							String.class);
+				}
+				String query2 = null;
+				Map<String, Object> map2 = new HashMap<>(1);
+				if(queryForToStatus.equalsIgnoreCase("ANS_REJECTED")) {
+				query2 = "UPDATE  rocausers.Query SET Status = :status, Comments = :comments ,UpdatedOn = CURRENT_TIMESTAMP where Id = :id";
+				map2.put("status", queryForToStatus);
+				map2.put("comments", s.getQueryComments());
+				map2.put("id", s.getId());
+				} else {
+					query2 = "UPDATE  rocausers.Query SET Status = :status, UpdatedOn = CURRENT_TIMESTAMP where Id = :id";
+					map2.put("status", queryForToStatus);
+					map2.put("id", s.getId());
+				}
+				
+				update.add(namedParameterJdbcTemplate.update(query, map));
+				update.add(namedParameterJdbcTemplate.update(query2, map2));
+			} else if(queryForTeamRole.equalsIgnoreCase("JUNIOR")) {
+			String query = "INSERT INTO  rocaserviceteam.QueryAssignment "
+					+ "				 (QueryId, FromAssignment, ToAssignment, Comments) "
+					+ "				 VALUES (:queryId,:fromAssignment,:toAssignment,:comments)";
+
+			Map<String, Object> map = new HashMap<>(1);
+			map.put("queryId", s.getId());
+			map.put("fromAssignment", s.getFromAssignment());
+			map.put("toAssignment", s.getToAssignment());
+			map.put("comments", s.getComments());
+			
+			String getStatus = "select Status from rocausers.Query where rocausers.Query.Id=?";
+			String queryForFromStatus = jdbcTemplate.queryForObject(getStatus, new Object[] { s.getId() },
+					String.class);
+			String queryForToStatus = null;
+
+			if (queryForFromStatus.equalsIgnoreCase("JRREVIEWED")) {
+				String ToStatus = "select ToState from rocaserviceteam.QueryStatusMaster where fromstate=? and Action=? and Condition=?";
+				queryForToStatus = jdbcTemplate.queryForObject(ToStatus,
+						new Object[] { queryForFromStatus, s.getAction(), s.getCondition() }, String.class);
+			} else if (queryForFromStatus.equalsIgnoreCase("ANS_CREATED")) {
+				String ToStatus = "select ToState from rocaserviceteam.QueryStatusMaster where fromstate=? and Action=?";
+				queryForToStatus = jdbcTemplate.queryForObject(ToStatus,
+						new Object[] { queryForFromStatus, s.getAction() }, String.class);
+			} else {
+				String ToStatus = "select ToState from rocaserviceteam.QueryStatusMaster where fromstate=?";
+				queryForToStatus = jdbcTemplate.queryForObject(ToStatus, new Object[] { queryForFromStatus },
+						String.class);
+			}
+			String query2 = "UPDATE  rocausers.Query SET Status = :status, UpdatedOn = CURRENT_TIMESTAMP where Id = :id";
+			Map<String, Object> map2 = new HashMap<>(1);
+			map2.put("status", queryForToStatus);
+			map2.put("id", s.getId());
+			
+			String getQuestionId = "select id from rocausers.question where queryId=? order by id asc";
+			List<String> queryForQuestionId = jdbcTemplate.queryForList(getQuestionId, new Object[] { s.getId() },
+					String.class);
+			int j =0;
+			for(QuestionBean que : s.getQueationbeans()) {
+				if(que.getIsQuestionModified() != 0 ) {
+					
+					String query5 = "UPDATE rocausers.Question SET Answer = :answer, UpdatedOn = CURRENT_TIMESTAMP where Id = :id";
+					Map<String, Object> map5 = new HashMap<>(1);
+					map5.put("answer", que.getAnswer());
+					map5.put("id", queryForQuestionId.get(j));
+					namedParameterJdbcTemplate.update(query5, map5);
+				}
+				j++;
+			}
+			
+			update.add(namedParameterJdbcTemplate.update(query, map));
+			update.add(namedParameterJdbcTemplate.update(query2, map2));
+		}
+		}
+		if (!update.contains(0)) {
+			i = 1;
+		}
+		return i;
+	}
+	
+	
 }
