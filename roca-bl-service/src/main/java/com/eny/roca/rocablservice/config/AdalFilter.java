@@ -76,8 +76,9 @@ public class AdalFilter implements Filter {
 				chain.doFilter(request, response);
 				return;
 			}
-
-			try {
+			chain.doFilter(request, response);
+		}
+			/*try {
 
 				String currentUri = request.getScheme() + "://" + request.getServerName()
 						+ ("http".equals(request.getScheme()) && request.getServerPort() == 80
@@ -140,7 +141,7 @@ public class AdalFilter implements Filter {
 				httpResponse.sendRedirect(((HttpServletRequest) request).getContextPath() + "/error.jsp");
 			}
 		}
-		chain.doFilter(request, response);
+		chain.doFilter(request, response);*/
 	}
 
 	private boolean pathAllowed(String requestUri) {

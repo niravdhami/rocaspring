@@ -1,27 +1,69 @@
 package com.eny.roca.db.bean;
 
-public class UserRegistration {
+import java.io.Serializable;
 
+import javax.persistence.Column;
+
+
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.Table;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+@Entity
+@Table(name="roca_users_roca_user_registration")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+public class UserRegistration implements Serializable {
+
+	private static final long serialVersionUID = 1L;
+
+	@Id
+	@GeneratedValue(strategy=GenerationType.AUTO)
+	@Column(name="Id")
+	private int id;
+	
+	@Column(name="Legal_Entity_Name")
 	private String legalEntityName;
 	
+	@Column(name="Contact_Person")
 	private String contactPerson;
 	
+	@Column(name="Role_Id")
 	private int roleId;
 	
+	@Column(name="Email_Id")
     private String emailId;
 	
+	@Column(name="Mobile_Number")
 	private Long mobileNo;
 	
+	@Column(name="Industry_Id")
 	private String industryId;
 	
+	@Column(name="Password")
 	private String password;
 	
+	@Column(name="Country_Id")
 	private int countryCode;
 	
-	private int isEmailVrified;
+	@Column(name="Is_Email_Verified")
+	private int isEmailVerified;
 	
-	private int isMobileVrified;
+	@Column(name="Is_Mobile_Verified")
+	private int isMobileVerified;
+	
 
+	public int getId() {
+		return id;
+	}
+
+	public void setId(int id) {
+		this.id = id;
+	}
+	
 	public String getLegalEntityName() {
 		return legalEntityName;
 	}
@@ -86,19 +128,20 @@ public class UserRegistration {
 		this.countryCode = countryCode;
 	}
 
-	public int getIsEmailVrified() {
-		return isEmailVrified;
+	public int getIsEmailVerified() {
+		return isEmailVerified;
 	}
 
-	public void setIsEmailVrified(int isEmailVrified) {
-		this.isEmailVrified = isEmailVrified;
+	public void setIsEmailVerified(int isEmailVerified) {
+		this.isEmailVerified = isEmailVerified;
 	}
 
-	public int getIsMobileVrified() {
-		return isMobileVrified;
+	public int getIsMobileVerified() {
+		return isMobileVerified;
 	}
 
-	public void setIsMobileVrified(int isMobileVrified) {
-		this.isMobileVrified = isMobileVrified;
+	public void setIsMobileVerified(int isMobileVerified) {
+		this.isMobileVerified = isMobileVerified;
 	}
+
 }

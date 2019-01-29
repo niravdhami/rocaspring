@@ -23,4 +23,6 @@ public interface QueryDao {
 
 	List<QueryBean> fetchQueryStatus(String status);
 
+	Integer postQueryAssignment(List<QueryAssignment> queryAssignment);
+
 }

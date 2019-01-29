@@ -20,10 +20,10 @@ public class UserRegistrationDataMapper implements RowMapper<UserRegistration> {
 			userRegistrationData.setIndustryId(rs.getString("industryId"));
 			userRegistrationData.setCountryCode(Integer.parseInt(rs.getString("CountryId")));
 			if(rs.getString("isemailverified") != null) {
-			userRegistrationData.setIsEmailVrified(Integer.parseInt(rs.getString("isemailverified")));
+			userRegistrationData.setIsEmailVerified(Integer.parseInt(rs.getString("isemailverified")));
 			}
 			if(rs.getString("ismobileverified") != null) {
-			userRegistrationData.setIsMobileVrified(Integer.parseInt(rs.getString("ismobileverified")));
+			userRegistrationData.setIsMobileVerified(Integer.parseInt(rs.getString("ismobileverified")));
 			}
 			return userRegistrationData;
 		}

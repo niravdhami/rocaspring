@@ -1,6 +1,7 @@
 package com.eny.roca.db.bean;
 
 public class QuestionBean {
+	private Integer queId;
 	private String questionDescription;
 	private Integer queryId;
 	private String queStatus;
@@ -8,6 +9,12 @@ public class QuestionBean {
 	private Integer isQuestionModified;
 	private String queComment;
 	private String answer;
+	public Integer getQueId() {
+		return queId;
+	}
+	public void setQueId(Integer queId) {
+		this.queId = queId;
+	}
 	public String getQuestionDescription() {
 		return questionDescription;
 	}
