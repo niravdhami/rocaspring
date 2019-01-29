@@ -1,21 +1,22 @@
 package com.eny.roca.bl.resource;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Optional;
+import java.util.Random;
 
 import javax.mail.MessagingException;
-import javax.ws.rs.QueryParam;
+import javax.servlet.http.HttpServletRequest;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cloud.netflix.feign.FeignClient;
+import org.springframework.cloud.netflix.ribbon.RibbonClient;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -25,17 +26,23 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
 import com.eny.roca.bean.EmailValidationBean;
+import com.eny.roca.bean.OTPRequest;
+import com.eny.roca.bean.OTPResponse;
 import com.eny.roca.bean.RegisteredUserResponse;
 import com.eny.roca.bean.UserBean;
 import com.eny.roca.bean.UserRegistration;
 import com.eny.roca.bl.services.SmtpMailSender;
 import com.eny.roca.bl.services.ValidateEmail;
 import com.eny.roca.helper.AzureAuthenticationHelper;
+import com.eny.roca.rocablservice.config.RedisDBConfig;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
 
 @RestController
 @RequestMapping("/rs/bl")
+@FeignClient(name="EmployeeSearch" )
+@RibbonClient(name="EmployeeSearch")
 public class RocaRegistrationResourceService {
 	
 	@Autowired
@@ -65,13 +72,28 @@ public class RocaRegistrationResourceService {
 	
 	@Value("${roca.registration.ad.clientSecret}")
 	private String clientSecret; 
-	
+
+	@Value("${roca.otp.caLayerDigiUser}")
+	private String caLayerDigiUser;
+
+	@Value("${roca.otp.caLayerDigiApiKey}")
+	private String caLayerDigiApiKey;
+
+	@Value("${roca.otp.caLayerDigiApiSecret}")
+	private String caLayerDigiApiSecret;
+
+	@Value("${roca.otp.url}")
+	private URI otpUrl;
 	@Autowired
 	private AzureAuthenticationHelper azureAuthenticationHelper;
 	
 	
 	@Autowired
 	private Gson gson;
+
+	@Autowired
+	private RedisDBConfig redisDBConfig;
+
 	
 	@SuppressWarnings("unchecked")
 	@GetMapping("/getRegistrationData")
@@ -180,28 +202,54 @@ public class RocaRegistrationResourceService {
 		return postForEntity.getBody();
 	}
 	
-	@GetMapping("/sendOtp")
-	public Integer updatePaceId(@RequestParam String mobileNo) {
+	@PostMapping("/sendOtp")
+	public Integer sendOtp(@RequestBody UserRegistration userRegistration) {
+		String mobileNo = "+" + userRegistration.getCountryCode() + "" + userRegistration.getMobileNo();
 		HttpHeaders httpHeaders = new  HttpHeaders();
 		httpHeaders.set("content-type", "application/json");
-		HttpEntity<String> httpEntity = new HttpEntity<>(mobileNo,httpHeaders);
-		ResponseEntity<Integer> postForEntity = restTemplate.postForEntity("http://roca-db-service/rs/db/sendOtp", httpEntity, Integer.class);
-		return postForEntity.getBody();
+		httpHeaders.set("digigst_username", caLayerDigiUser);
+		httpHeaders.set("api_key", caLayerDigiApiKey);
+		httpHeaders.set("api_secret", caLayerDigiApiSecret);
+				
+		JsonObject json = new JsonObject();
+		json.addProperty("mobile_number", mobileNo);
+		final GsonBuilder gsonBuilder = new GsonBuilder();
+		Gson gson = gsonBuilder.create();
+		final String finalJson = gson.toJson(json);
+		HttpEntity<String> httpEntity = new HttpEntity<>(finalJson,httpHeaders);
+		ResponseEntity<OTPResponse> postForEntity = restTemplate.postForEntity(otpUrl, httpEntity, OTPResponse.class);
+		OTPResponse otpBean = postForEntity.getBody();
+		if(otpBean.getStatus_cd().equals("1")) {
+			redisDBConfig.add(mobileNo, otpBean.getOtp(), 30 * 60);
+			return 1;
+		} else {
+			return 0;
+		}
 		
 	}
 	
-	@GetMapping("/verifyOtp")
-	public Integer verifyOtp(@RequestParam String mobileNo, @RequestParam Integer otp) {
-		String json = gson.toJson(otp);
-		HttpHeaders headers = new HttpHeaders();
-		headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-		MultiValueMap<String, String> map= new LinkedMultiValueMap<String, String>();
-		map.add("mobileNo" ,mobileNo); 
-		map.add("otp", json);
-		HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<MultiValueMap<String, String>>(map, headers);
-		ResponseEntity<Integer> postForEntity = restTemplate.postForEntity("http://roca-db-service/rs/db/verifyOtp", request, Integer.class);
-		return postForEntity.getBody();
-		
+	@PostMapping("/verifyOtp")
+	public Integer verifyOtp(@RequestBody UserRegistration userRegistration) {
+		String mobileNo = "+" + userRegistration.getCountryCode() + "" + userRegistration.getMobileNo();
+		String otp = redisDBConfig.get(mobileNo);
+		if(otp != null && otp.equals(userRegistration.getOtp())) {
+			return 1;
+		} else {
+			return 0;
+		}		
 	}
 
+	@PostMapping("calayerSendOtp")
+	public OTPResponse sendOtpDummy(@RequestBody OTPRequest otpRequest, HttpServletRequest request) {
+		int n1 = (int)(Math.random() * 9 + 1);
+		int n2 = (int)(Math.random() * 9 + 1);
+		int n3 = (int)(Math.random() * 9 + 1);
+		int n4 = (int)(Math.random() * 9 + 1);
+		String str = "" + n1 + "" + n2 + "" + n3 + "" + n4;
+		OTPResponse bean = new OTPResponse();
+		System.out.println("OTP generated..." + str);
+		bean.setOtp(str);
+		bean.setStatus_cd("1");
+		return bean;
+	}
 }

@@ -23,6 +23,8 @@ public class UserRegistration {
 	private int isMobileVrified;
 	
 	private int regisrationId;
+	
+	private String otp;
 
 	public String getLegalEntityName() {
 		return legalEntityName;
@@ -111,4 +113,14 @@ public class UserRegistration {
 	public void setRegisrationId(int regisrationId) {
 		this.regisrationId = regisrationId;
 	}
+
+	public String getOtp() {
+		return otp;
+	}
+
+	public void setOtp(String otp) {
+		this.otp = otp;
+	}
+	
+	
 }

@@ -6,7 +6,10 @@ public enum AllowedPaths {
 	REGISTERROLES("registerroles"),
 	COUNTRY("country"),
 	CITY("city"),
-	INDUSTRY("industry");
+	INDUSTRY("industry"),
+	SEND_OTP("sendOtp"),
+	VERIFY_OTP("verifyOtp"),
+	CA_LAYER_SEND_OTP("calayerSendOtp");
 	 
 	private final String value;
 
